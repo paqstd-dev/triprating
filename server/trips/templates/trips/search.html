@@ -1,0 +1,71 @@
+{% extends 'layout.html' %}
+
+{% block title %}Search Trip Routes{% endblock %}
+
+{% block content %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get">
+                <div class="d-flex align-items-end">
+                    <div class="form-group w-100 me-3">
+                        <label class="form-label">City Name</label>
+                        <input class="form-control" placeholder="For example: Washington" name="city" value="{{ request.GET.city }}">
+                    </div>
+
+                    <div class="form-group w-25 me-3">
+                        <label class="form-label">Max Days</label>
+                        <input class="form-control" name="days" value="7">
+                    </div>
+
+                    <div class="form-group w-25 me-3">
+                        <label class="form-label">Max Miles</label>
+                        <input class="form-control" name="miles" value="400">
+                    </div>
+
+                    <button class="btn btn-primary" type="submit">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if not trips %}
+        <div class="alert alert-warning">
+            To view the rating of trips, you need to enter the city, the number of days and the maximum number of miles
+        </div>
+    {% else %}
+        <div class="hr-text hr-text-left">Finded trips:</div>
+        <div class="row">
+            {% for trip in trips %}
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="ribbon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-users" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                <path d="M21 21v-2a4 4 0 0 0 -3 -3.85"></path>
+                            </svg>
+                            {{ trip.rating }}
+                        </div>
+
+                        <div class="card-body">
+                            <ul class="list list-timeline">
+                                {% for city in trip.routes %}
+                                    <li>
+                                        <div class="list-timeline-icon bg-gray"></div>
+                                        <div class="list-timeline-content">
+                                            <div class="list-timeline-time">{{ forloop.counter }} Day</div>
+                                            <p class="list-timeline-title">{{ city.name }}</p>
+                                            <small class="text-muted">Population: {{ city.population }}</small>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}
