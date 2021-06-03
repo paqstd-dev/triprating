@@ -1,5 +1,7 @@
 # Trip Rating
 
+[![Build Status](https://www.travis-ci.com/paqstd-dev/triprating.svg?branch=master)](https://www.travis-ci.com/paqstd-dev/triprating)
+
 ## Tech Stack
 Docker, Nginx, Python (Django), SQLite3 (as default).  
 
