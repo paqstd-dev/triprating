@@ -1,6 +1,11 @@
+# System
 import os
 import csv
+
+# Core
 from django.conf import settings
+from django.core.cache import cache
+
 
 class TripFinder:
     _distance   :dict = {}
@@ -9,9 +14,12 @@ class TripFinder:
     _routes     :list = []
 
 
-    def __init__(self, city:str = None, days:int = 7, miles:int = 400) -> None:
+    def __init__(self, city:str = None, days:int = 7, miles:int = 400, cache_timeout:int = 60 * 24) -> None:
         if not city:
             return print('City is required!')
+        
+        # cache settings
+        self._cache_timeout = cache_timeout
 
         self.load_distance()
         self.load_cities()
@@ -34,6 +42,12 @@ class TripFinder:
 
     # Saving from file to list with scheme:
     def load_distance(self, filename:str = 'miles.csv') -> None:
+        cache_prefix = 'find_trip__distance'
+
+        if cache.get(cache_prefix):
+            self._distance = cache.get(cache_prefix)
+            return
+
         with open(settings.BASE_DIR / 'data' / filename, newline='\n') as data:  
             reader = csv.reader(data)
             header = next(reader)[1:]
@@ -66,9 +80,17 @@ class TripFinder:
                         'distance': float(col.replace(',', '.'))
                     })
 
+            cache.set(cache_prefix, self._distance, timeout=self._cache_timeout)
+
 
     # Saving from file to list with scheme:
     def load_cities(self, filename:str = 'cities.csv') -> None:
+        cache_prefix = 'find_trip__cities'
+
+        if cache.get(cache_prefix):
+            self._cities = cache.get(cache_prefix)
+            return
+
         with open(settings.BASE_DIR / 'data' / filename, newline='\n') as data:  
             reader = csv.reader(data)
 
@@ -77,6 +99,8 @@ class TripFinder:
 
             for location, population in reader:
                 self._cities[location] = int(population)
+
+            cache.set(cache_prefix, self._cities, timeout=self._cache_timeout)
 
 
     # Search next city for miles and current
