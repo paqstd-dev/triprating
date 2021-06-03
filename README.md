@@ -6,6 +6,8 @@
 > docker-compose up -d  
 > make postbuild  
 
+And open localhost:8000 as default.  
+
 
 ## Handler
 > from trips.handler import TripFinder  
