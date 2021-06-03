@@ -1,15 +1,13 @@
 # Core
 from django.shortcuts import render
 from django.views import View
-from django.views.decorators.cache import cache_page
-from django.utils.decorators import method_decorator
+from django.core.cache import cache
 
 # Project
 from trips.handler import TripFinder
 
 
 # Caching for 60 seconds
-@method_decorator(cache_page(60), name='dispatch')
 class SearchView(View):
     def get(self, request):
         params = request.GET
@@ -17,13 +15,20 @@ class SearchView(View):
 
         if params.get('city'):
             try:
-                trips = TripFinder(
-                    city=params.get('city'),
-                    days=params.get('days', 7),
-                    miles=params.get('miles', 400)
-                ).search()
+                cache_prefix = f'find_trip__trips_{ params.get("city") }_{ params.get("days") }_{ params.get("miles") }'
+
+                if not cache.ttl(cache_prefix):
+                    trips = TripFinder(
+                            city=params.get('city'),
+                            days=params.get('days', 7),
+                            miles=params.get('miles', 400)
+                        ).search()
+
+                    cache.set(cache_prefix, trips, timeout=60)
+                else:
+                    trips = cache.get(cache_prefix)
             except: pass
 
         return render(request, 'trips/search.html', {
-            'trips': trips[:10]
+            'trips': trips if not params.get('show') else trips[:int(params.get('show'))] if trips else []
         })

@@ -44,7 +44,7 @@ class TripFinder:
     def load_distance(self, filename:str = 'miles.csv') -> None:
         cache_prefix = 'find_trip__distance'
 
-        if cache.get(cache_prefix):
+        if cache.ttl(cache_prefix):
             self._distance = cache.get(cache_prefix)
             return
 
@@ -87,7 +87,7 @@ class TripFinder:
     def load_cities(self, filename:str = 'cities.csv') -> None:
         cache_prefix = 'find_trip__cities'
 
-        if cache.get(cache_prefix):
+        if cache.ttl(cache_prefix):
             self._cities = cache.get(cache_prefix)
             return
 
