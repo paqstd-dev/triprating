@@ -1,5 +1,8 @@
 # Trip Rating
 
+## Tech Stack
+Docker, Nginx, Python (Django), SQLite3 (as default).  
+
 ## Install
 > cp .env.example .env  
 > docker-compose build --no-cache  

@@ -142,10 +142,3 @@ class TripFinder:
 
         return trips
 
-
-# Init Finder
-# finder = TripFinder(city='Washington', days=3, miles=400)
-
-# Find all trips for current city
-# If rating = True -- return sorted list as trips
-# rating = finder.search(rating=True)
