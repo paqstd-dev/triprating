@@ -67,7 +67,10 @@
                                     <li>
                                         <div class="list-timeline-icon bg-gray"></div>
                                         <div class="list-timeline-content">
-                                            <div class="list-timeline-time">{{ forloop.counter }} Day</div>
+                                            {% if forloop.counter0 %}
+                                                <div class="list-timeline-time">{{ forloop.counter0 }} Day</div>
+                                            {% endif %}
+
                                             <p class="list-timeline-title">{{ city.name }}</p>
                                             <small class="text-muted">Population: {{ city.population }}</small>
                                         </div>
