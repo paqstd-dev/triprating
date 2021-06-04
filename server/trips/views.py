@@ -18,11 +18,18 @@ class SearchView(View):
                 cache_prefix = f'find_trip__trips_{ params.get("city") }_{ params.get("days") }_{ params.get("miles") }'
 
                 if not cache.ttl(cache_prefix):
-                    trips = TripFinder(
-                            city=params.get('city'),
-                            days=params.get('days', 7),
-                            miles=params.get('miles', 400)
-                        ).search()
+                    finder = TripFinder(
+                        city=params.get('city'),
+                        days=int(params.get('days', 7)) + 1,
+                        miles=params.get('miles', 400),
+                        client=request.META.get('REMOTE_ADDR')
+                    )
+
+                    # use some procs for searching trips
+                    # you may use .miltisearch(workers=64), where workers > 0
+                    # by default workers=16
+                    finder.multisearch(workers=64)
+                    trips = finder.rating()
 
                     cache.set(cache_prefix, trips, timeout=60)
                 else:

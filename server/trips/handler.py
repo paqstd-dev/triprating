@@ -1,48 +1,63 @@
 # System
-import os
 import csv
+import json
+from multiprocessing import Process
 
 # Core
 from django.conf import settings
 from django.core.cache import cache
+from django_redis import get_redis_connection
 
 
 class TripFinder:
     _distance   :dict = {}
     _cities     :dict = {}
-    _trips      :list = []
-    _routes     :list = []
 
 
-    def __init__(self, city:str = None, days:int = 7, miles:int = 400, cache_timeout:int = 60 * 24) -> None:
-        if not city:
-            return print('City is required!')
-        
-        # cache settings
-        self._cache_timeout = cache_timeout
+    # City is string, for example 'Washington' -- it is 
+    def __init__(self, city:str, days:int = 7, miles:int = 400, ttl:int = 60 * 24, client:str = 'default') -> None:
+        self._cache = {
+            'ttl'               : ttl,
+            'cities_prefix'     : f'trip_finder__cities',
+            'distance_prefix'   : f'trip_finder_distance',
+            'trips_prefix'      : f'trip_finder__trips_{ client }',
+            'routes_prefix'     : f'trip_finder__routes_{ client }'
+        }
 
+        # Load data
         self.load_distance()
         self.load_cities()
 
+        # Global vars
         self._city         = self.find_city(city)
         self._days         = int(days)
         self._max_miles    = int(miles)
-        self._routes.append([self._city])
+
+        # Clear data
+        redis = get_redis_connection('default')
+        redis.delete(self._cache.get('trips_prefix'))
+        redis.delete(self._cache.get('routes_prefix'))
 
 
     # Find from cities by small city name
     # If already full path return this
-    def find_city(self, current: str, population: bool = False):
-        for city in self._cities:
-            if current in city:
-                return city if not population else self._cities[city]
+    def find_city(self, current:str, population:bool = False):
+        city = None
 
-        return False
+        if current in self._cities:
+            city = current
+        else:
+            for c in self._cities:
+                if current in c:
+                    city = c
+                    break
+
+        return self._cities[city] if population else city
 
 
     # Saving from file to list with scheme:
     def load_distance(self, filename:str = 'miles.csv') -> None:
-        cache_prefix = 'find_trip__distance'
+        cache_prefix = self._cache.get('distance_prefix')
 
         if cache.ttl(cache_prefix):
             self._distance = cache.get(cache_prefix)
@@ -80,12 +95,12 @@ class TripFinder:
                         'distance': float(col.replace(',', '.'))
                     })
 
-            cache.set(cache_prefix, self._distance, timeout=self._cache_timeout)
+            cache.set(cache_prefix, self._distance, timeout=self._cache.get('ttl'))
 
 
     # Saving from file to list with scheme:
     def load_cities(self, filename:str = 'cities.csv') -> None:
-        cache_prefix = 'find_trip__cities'
+        cache_prefix = self._cache.get('cities_prefix')
 
         if cache.ttl(cache_prefix):
             self._cities = cache.get(cache_prefix)
@@ -100,7 +115,7 @@ class TripFinder:
             for location, population in reader:
                 self._cities[location] = int(population)
 
-            cache.set(cache_prefix, self._cities, timeout=self._cache_timeout)
+            cache.set(cache_prefix, self._cities, timeout=self._cache.get('ttl'))
 
 
     # Search next city for miles and current
@@ -109,36 +124,71 @@ class TripFinder:
         return result
 
 
+    # Trying get from b'[list]' list()
+    # Redis by default return string and we must convert to python list
+    def _parseList(self, string:str):
+        try: return json.loads(string)
+        except: return []
+
+
     # Core for search trips
-    def search(self, rating: bool = True) -> list or None:
-        while len(self._routes):
-            # remove item from list and then insert if needed it
-            trip = self._routes.pop(0)
+    def search(self) -> None:
+        redis = get_redis_connection('default')
 
-            # skip if already last day
-            if len(trip) > self._days: continue
+        cr = self._cache.get('routes_prefix')
+        ct  = self._cache.get('trips_prefix')
 
-            # for every city in current city to... check miles and trip
+        if not redis.llen(cr):
+            redis.rpush(cr, json.dumps([self._city]))
+
+        while redis.llen(cr):
+            # Remove item from list and then insert if needed it
+            trip = self._parseList(redis.lpop(cr))
+
+            # Skip if already last day
+            if not trip or len(trip) > self._days: continue
+
+            # For every city in current city to... check miles and trip
             for city in self.next_city(trip[-1]):
                 current = trip + [city]
 
-                # save trip if founded it
-                if city == self._city:
-                    if current not in self._trips:
-                        self._trips.append(current)
+                # Save trip if founded it
+                if len(current) >= self._days:
+                    if city == self._city:
+                        redis.rpush(ct, json.dumps(current))
+                        break
 
-                    break
+                    continue
 
-                self._routes.append(current)
+                redis.rpush(cr, json.dumps(current))
 
-        if rating: return self.rating()
+        redis.expire(self._cache.get('routes_prefix'), 60)
+        redis.expire(self._cache.get('trips_prefix'), 60)
+
+
+    def multisearch(self, workers:int = 16):
+        procs = []
+
+        for _ in range(workers):
+            proc = Process(target=self.search)
+            procs.append(proc)
+            proc.start()
+
+        for proc in procs:
+            proc.join()
 
 
     # Sort and change _trips value
-    def rating(self, sort: bool = True) -> list:
-        trips = []
+    def rating(self) -> list:
+        redis = get_redis_connection('default')
 
-        for trip in self._trips:
+        # Cached Trips (cts) and Cached Trip (ct)
+        cts = redis.lrange(self._cache.get('trips_prefix'), start=0, end=-1)
+
+        trips = []
+        for ct in cts:
+            trip = self._parseList(ct)
+
             rating = 0
             routes = []
 
@@ -157,9 +207,6 @@ class TripFinder:
                 'routes': routes,
                 'rating': rating
             })
-
-        if not sort:
-            return trips
 
         trips.sort(key=lambda item: item['rating'])
         trips.reverse()
