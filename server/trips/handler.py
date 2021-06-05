@@ -30,7 +30,7 @@ class TripFinder:
 
         # Global vars
         self._city         = self.find_city(city)
-        self._days         = int(days)
+        self._days         = 1 + int(days) # travel from the starting city is not counted
         self._max_miles    = int(miles)
 
         # Clear data
