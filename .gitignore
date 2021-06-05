@@ -7,3 +7,7 @@ __pycache__
 # some files
 .env
 *.sqlite3
+
+# db
+postgres/*
+!postgres/.gitkeep

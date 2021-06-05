@@ -9,8 +9,24 @@
                 <div class="d-flex align-items-end">
                     <div class="form-group w-100 me-3">
                         <label class="form-label">City Name</label>
-                        <input class="form-control" {% if not request.GET.city %}autofocus{% endif %} required placeholder="For example: Washington" name="city" value="{{ request.GET.city }}">
+                        <select name="city">
+                            {% for city in cities %}
+                                <option value="{{ city.name }}" {% if request.GET.city == city.name %}selected{% endif %}>{{ city.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
+
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function () {
+                            var $select = $("[name=city]").selectize({
+                                plugins: ["restore_on_backspace"],
+                                create: true,
+                                sortField: "text"
+                            });
+
+                            $select[0].selectize.setValue('{{ request.GET.city|default:"" }}')
+                        });
+                    </script>
 
                     <div class="form-group w-25 me-3">
                         <label class="form-label">Max Days</label>

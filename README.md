@@ -5,7 +5,8 @@
 ## Tech Stack
 Docker  
 Nginx  
-Python (Django, Multiprocessing) 
+Python (Django, Multiprocessing)  
+PostgreSQL
 
 
 ## Install
@@ -15,6 +16,7 @@ Python (Django, Multiprocessing)
 ` $ make postbuild  `   
 
 And open localhost:8000 as default.  
+If you need load data to DB use `$ make loaddata`. It is clear db and insert from files in folder /data/.  
 
 
 ## Handler

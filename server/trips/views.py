@@ -5,7 +5,7 @@ from django.core.cache import cache
 
 # Project
 from trips.handler import TripFinder
-
+from trips.models import City
 
 # Caching for 60 seconds
 class SearchView(View):
@@ -37,5 +37,6 @@ class SearchView(View):
             except: pass
 
         return render(request, 'trips/search.html', {
-            'trips': trips if not params.get('show') else trips[:int(params.get('show'))] if trips else []
+            'trips': trips if not params.get('show') else trips[:int(params.get('show'))] if trips else [],
+            'cities': City.objects.all()
         })

@@ -1,3 +1,11 @@
+# Core
 from django.contrib import admin
 
-# Register your models here.
+# Project
+from trips.models import City
+
+
+@admin.register(City)
+class CityAdmin(admin.ModelAdmin):
+    list_display = ('name', 'population')
+
