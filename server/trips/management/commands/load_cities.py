@@ -6,11 +6,11 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 
 # Project
-from trips.models import City, Distance
+from trips.models import City
 
 
 class Command(BaseCommand):
-    help = 'Load files to db'
+    help = 'Load file to db'
 
 
     def handle(self, *args, **options):
